@@ -8,7 +8,8 @@ function App() {
     const fetchData = async () => {
       try {
         const response = await axios.get('http://localhost:3000/api/merge_requests');
-        setData(response.data);
+        console.log(response.data);
+        // setData(response.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       }
