@@ -12,29 +12,29 @@ axios.defaults.headers.common['PRIVATE-TOKEN'] = gitlabApiToken;
 
 const getMergeRequests = async () => {
   let mergeRequests = [];
-  // Add your team members' GitLab User IDs here
   const userIds = [1575, 1231, 202, 291, 1129, 1331, 943, 920];
+  const twoWeeksAgo = new Date();
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+  const createdAfter = twoWeeksAgo.toISOString().slice(0, 19) + 'Z'; // format date
 
   for(let userId of userIds) {
     try {
-      let response = await axios.get(`${gitlabUrl}/api/v4/merge_requests?state=merged&scope=all&author_id=${userId}`);
+      let response = await axios.get(`${gitlabUrl}/api/v4/merge_requests?state=merged&scope=all&author_id=${userId}&created_after=${createdAfter}`);
       let userResponse = await axios.get(`${gitlabUrl}/api/v4/users/${userId}`);
-       // Add user name to each merge request
-       for(let mr of response.data) {
-        mr.user_name = userResponse.data.name;
+      
+      for(let mr of response.data) {
         let createdAt = new Date(mr.created_at);
-        let closedAt = new Date(mr.merged_at);
-        let diffDays = Math.floor((closedAt - createdAt) / (1000 * 60 * 60 * 24));
-        let diffHours = Math.floor((closedAt - createdAt) / (1000 * 60 * 60));
+        let mergedAt = new Date(mr.merged_at);
+        let diffDays = Math.floor((mergedAt - createdAt) / (1000 * 60 * 60 * 24));
+        let diffHours = Math.floor((mergedAt - createdAt) / (1000 * 60 * 60));
+        
         mergeRequests.push({
           id: mr.iid,
-          createdAt: mr.created_at,
-          closedAt: mr.closed_at,
           title: mr.title,
-          user_name: mr.user_name,
+          user_name: userResponse.data.name,
           web_url: mr.web_url,
           diffDays,
-          diffHours,
+          diffHours
         });
       }
     } catch (error) {
@@ -43,24 +43,11 @@ const getMergeRequests = async () => {
   }
   return mergeRequests;
 };
+
 app.use(cors());
 
 app.get('/api/merge_requests', async (req, res) => {
-  // let data = [];
   const mergeRequests = await getMergeRequests();
-    
-  // for (let mr of mergeRequests) {
-  //   let createdAt = new Date(mr.created_at);
-  //   let closedAt = new Date(mr.closed_at);
-  //   let diffDays = Math.floor((closedAt - createdAt) / (1000 * 60 * 60 * 24));
-  //   data.push({
-  //     id: mr.iid,
-  //     title: mr.title,
-  //     user_name: mr.user_name,
-  //     web_url: mr.web_url,
-  //     diffDays
-  //   });
-  // }
   res.json(mergeRequests);
 });
 
